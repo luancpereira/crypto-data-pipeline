@@ -126,8 +126,10 @@ Na interface web, você poderá visualizar e monitorar a DAG `execute_all_servic
 
 ## Estrutura do Projeto no Cloud Run
 
-Variáveis de Ambiente na configuração do serviço: API_URL -> `https://rest.coincap.io/v3` 
-                                                  API_TOKEN -> `180f58a0d1715bcf41a4ab67e2e2664dacdbfb3a61112c1e3c860ae33ae1fa09`
+### Variáveis de Ambiente na configuração do serviço: 
+
+API_URL -> `https://rest.coincap.io/v3` 
+API_TOKEN -> `180f58a0d1715bcf41a4ab67e2e2664dacdbfb3a61112c1e3c860ae33ae1fa09`
 
 Os retornos do Cloud Run, em formato JSON, estão disponíveis na pasta `responses-cloud-run-coincap-api/response-README.md`. Nesse arquivo, você encontrará exemplos e resumos dos principais responses.
 
