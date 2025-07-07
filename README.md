@@ -18,17 +18,17 @@
 O diretório `cloud-run-coincap-api` contém toda a lógica responsável pela coleta, transformação e carga de dados.
 
 <details>
-  <summary><strong>🔧 bigquery_functions.py</strong></summary>
+  <summary><strong>bigquery_functions.py</strong></summary>
 
 Funções auxiliares para interação com o BigQuery:
 
 - `insert_into_bigquery(rows, table, chunk_size)`:  
   Insere dados em qualquer tabela do BigQuery de forma escalável via chunking.
 
-- `check_execution_date(crypto)`:  
+- `check_execution_date(crypto_id, current_date)`:  
   Verifica a última execução de uma determinada criptomoeda para evitar reprocessamento.
 
-- `insert_log_entry(error)`:  
+- `insert_log_entry(crypto_id, status, json_error, timestamp_hour)`:  
   Insere registros de erro na tabela de log.
 
 </details>
@@ -38,9 +38,9 @@ Funções auxiliares para interação com o BigQuery:
 
 Responsável pela transformação dos dados para os formatos compatíveis com o BigQuery:
 
-- `transform_assets_data(data)`  
-- `transform_rates_data(data)`  
-- `transform_assets_history_data(data)`  
+- `transform_assets_data(json_data)`  
+- `transform_rates_data(json_data)`  
+- `transform_assets_history_data(json_data, crypto_id, execution_date)`  
 
 Essas funções garantem que os dados estejam no formato correto e com os tipos apropriados para evitar falhas de carregamento.
 
@@ -51,9 +51,9 @@ Essas funções garantem que os dados estejam no formato correto e com os tipos 
 
 Responsável pelas chamadas externas à API CoinCap:
 
-- `get_assets_data()`  
-- `get_rates_data()`  
-- `get_assets_history_data()`  
+- `get_assets_data(token, ids=None)`  
+- `get_rates_data(token, ids=None)`  
+- `get_assets_history_data(token, crypto_id, start_timestamp, end_timestamp)`  
 
 Cada função realiza tratamento de parâmetros, erros e retorno das respostas de forma padronizada.
 
@@ -64,9 +64,9 @@ Cada função realiza tratamento de parâmetros, erros e retorno das respostas d
 
 Coordena o fluxo completo de dados:
 
-- `process_assets_data()`  
-- `process_rates_data()`  
-- `process_assets_history_data()`:  
+- `process_assets_data(token, cryptos)`  
+- `process_rates_data(token, cryptos)`  
+- `process_assets_history_data(token, cryptos)`:  
   Executa uma verificação no BigQuery para garantir que o histórico da cripto não foi processado no dia antes de continuar. Processa dados individualmente por cripto, em uma estrutura de repetição.
 
 </details>
