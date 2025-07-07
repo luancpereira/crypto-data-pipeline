@@ -126,7 +126,7 @@ Na interface web, você poderá visualizar e monitorar a DAG `execute_all_servic
 
 ## Estrutura do Projeto no Cloud Run
 
-Os retornos do Cloud Run, em formato JSON, estão disponíveis na pasta responses-cloud-run-coincap-api/response-README.MD. Nesse arquivo, você encontrará exemplos e resumos dos principais responses.
+Os retornos do Cloud Run, em formato JSON, estão disponíveis na pasta `responses-cloud-run-coincap-api/response-README.md`. Nesse arquivo, você encontrará exemplos e resumos dos principais responses.
 
 O diretório `cloud-run-coincap-api` contém toda a lógica responsável pela coleta, transformação e carga de dados.
 
