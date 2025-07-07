@@ -1,6 +1,117 @@
 
 # Coleta e Armazenamento de Dados de Criptomoedas
 
+**Link do Looker**: https://lookerstudio.google.com/s/vgb9fT77bPs
+
+## Dashboard de Criptomoedas
+
+Este projeto tem como resultado final um dashboard interativo desenvolvido no Looker Studio, com foco no monitoramento de criptomoedas. O painel exibe:
+
+- Cotação atual em USD e BRL
+- Variação percentual nas últimas 24 horas
+- Criptomoeda com maior valorização no dia
+- Volume total negociado nas últimas 24h
+- Market Cap agregado
+- Distribuição de volume por criptomoeda em gráfico de pizza
+- Análise horária da volatilidade dos preços
+
+Com isso, é possível obter uma visão clara e rápida do mercado cripto, facilitando decisões estratégicas e o acompanhamento de tendências.
+
+---
+
+# Configuração e Execução do Projeto
+
+## Pré-requisitos
+
+### 1. Configurações no Google Cloud Platform
+
+Para executar o projeto em nuvem, é necessário ativar os seguintes serviços do **Google Cloud Platform**:
+
+- **Cloud Run** - Para hospedagem do serviço de coleta
+- **BigQuery** - Para armazenamento e processamento dos dados
+
+### 2. Service Account
+
+Gere o arquivo JSON de **Service Account** no GCP com as permissões necessárias para:
+- Acessar o BigQuery
+- Executar serviços no Cloud Run
+
+## Configuração do Apache Airflow
+
+### 1. Instalação do Docker
+
+Certifique-se de ter o **Docker** e **Docker Compose** instalados em sua máquina.
+
+### 2. Estrutura de Diretórios
+
+Crie a seguinte estrutura de diretórios no seu ambiente Airflow:
+
+```
+airflow/
+├── dags/
+├── credenciais/
+│   └── gcp-sa.json
+├── docker-compose.yaml
+└── .env
+```
+
+### 3. Configuração do Arquivo .env
+
+Crie um arquivo `.env` na raiz do diretório do Airflow com as seguintes variáveis:
+
+```bash
+AIRFLOW_UID=50000
+AIRFLOW_PROJ_DIR=/home/luan/airflow  # Substitua pelo seu diretório local do Airflow
+```
+
+> **Nota**: Ajuste o `AIRFLOW_PROJ_DIR` para o caminho correto do seu diretório do Airflow.
+
+### 4. Configuração do Docker Compose
+
+No arquivo `docker-compose.yaml`, adicione o seguinte mapeamento de volume na seção `volumes`:
+
+```yaml
+volumes:
+  - ${AIRFLOW_PROJ_DIR:-.}/credenciais/gcp-sa.json:/opt/airflow/gcp-sa.json
+```
+
+Esta configuração mapeia suas credenciais do GCP para dentro do container do Airflow.
+
+### 5. Adicionando a DAG
+
+Copie o arquivo `execute_all_services.py` para a pasta `dags/` criada anteriormente.
+
+## Executando o Projeto
+
+### 1. Inicialização do Airflow
+
+Execute o comando para inicializar o Airflow:
+
+```bash
+sudo docker compose up
+```
+
+Aguarde o carregamento completo do sistema.
+
+### 2. Acesso à Interface Web
+
+Após a inicialização, acesse a interface web do Airflow em:
+
+```
+http://localhost:8080/
+```
+
+### 3. Credenciais de Acesso
+
+Use as seguintes credenciais padrão para fazer login:
+
+- **Usuário**: `airflow`
+- **Senha**: `airflow`
+
+### 4. Verificação da DAG
+
+Na interface web, você poderá visualizar e monitorar a DAG `execute_all_services` e suas execuções horárias.
+
 ---
 
 ## Tecnologias Utilizadas
@@ -153,5 +264,84 @@ Conjunto com os **dados prontos para análise**, resultado das procedures da cam
 - `cadastra-teste.APIcripto_gold.best_performers_last_24h`  
 
 Essas tabelas servem como base para visualizações no **Looker** e demais análises de negócio.
+
+---
+
+# Orquestração com Apache Airflow
+
+O processo de orquestração do pipeline de dados é realizado por meio do **Apache Airflow**, utilizando uma DAG configurada para rodar de **hora em hora**.
+
+## Estrutura da DAG
+
+A DAG principal está localizada no diretório:
+```
+airflow-execute-services/execute_all_services.py
+```
+
+### Fluxo de Execução
+
+A DAG realiza duas etapas principais executadas sequencialmente:
+
+## 1. Execução do Serviço no Cloud Run
+
+A função `execute_services()` é responsável por acionar o serviço exposto no **Cloud Run** através do endpoint:
+
+```
+https://coincap-api-753104042367.us-central1.run.app
+```
+
+### Parâmetros Enviados
+
+Na chamada do serviço, são enviadas as seguintes criptomoedas de interesse:
+
+```python
+cryptos = [
+    "bitcoin",
+    "ethereum", 
+    "tether",
+    "xrp",
+    "binance-coin",
+    "solana",
+    "usd-coin",
+    "tron",
+    "dogecoin",
+    "steth"
+]
+```
+
+### Funcionalidades do Serviço
+
+Este serviço executa toda a lógica de:
+- **Coleta** de dados das criptomoedas
+- **Transformação** dos dados coletados
+- **Carga** dos dados no BigQuery
+- **Registro de erros** (quando necessário)
+
+## 2. Execução das Procedures no BigQuery
+
+Somente após a execução **bem-sucedida** do serviço no Cloud Run, a DAG avança para a próxima etapa.
+
+### Procedures Executadas
+
+A execução das procedures é realizada através da função `execute_bigquery_procedure(procedure_query)` e inclui:
+
+- `best_performers_last_24h`
+- `crypto_analysis_by_hour`
+- `latest_rates`
+
+### Processamento Concorrente
+
+Como essas procedures são **independentes** entre si, elas são executadas de forma **concorrente**, otimizando o tempo de processamento da DAG.
+
+## Frequência de Execução
+
+- **Intervalo**: A cada hora
+- **Tipo**: Agendamento automático via Apache Airflow
+
+## Dependências
+
+1. **Apache Airflow** - Orquestrador principal
+2. **Google Cloud Run** - Hospedagem do serviço de coleta
+3. **Google BigQuery** - Armazenamento e processamento de dados
 
 ---
