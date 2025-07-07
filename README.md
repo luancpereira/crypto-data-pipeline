@@ -30,7 +30,6 @@ Funções auxiliares para interação com o BigQuery:
 
 - `insert_log_entry(crypto_id, status, json_error, timestamp_hour)`:  
   Insere registros de erro na tabela de log.
-
 </details>
 
 <details>
@@ -41,9 +40,6 @@ Responsável pela transformação dos dados para os formatos compatíveis com o 
 - `transform_assets_data(json_data)`  
 - `transform_rates_data(json_data)`  
 - `transform_assets_history_data(json_data, crypto_id, execution_date)`  
-
-Essas funções garantem que os dados estejam no formato correto e com os tipos apropriados para evitar falhas de carregamento.
-
 </details>
 
 <details>
@@ -54,9 +50,6 @@ Responsável pelas chamadas externas à API CoinCap:
 - `get_assets_data(token, ids=None)`  
 - `get_rates_data(token, ids=None)`  
 - `get_assets_history_data(token, crypto_id, start_timestamp, end_timestamp)`  
-
-Cada função realiza tratamento de parâmetros, erros e retorno das respostas de forma padronizada.
-
 </details>
 
 <details>
@@ -66,27 +59,19 @@ Coordena o fluxo completo de dados:
 
 - `process_assets_data(token, cryptos)`  
 - `process_rates_data(token, cryptos)`  
-- `process_assets_history_data(token, cryptos)`:  
-  Executa uma verificação no BigQuery para garantir que o histórico da cripto não foi processado no dia antes de continuar. Processa dados individualmente por cripto, em uma estrutura de repetição.
-
+- `process_assets_history_data(token, cryptos)`  
 </details>
 
 <details>
   <summary><strong>utils.py</strong></summary>
 
-Funções utilitárias reutilizadas em diversas partes do projeto. Auxiliam na padronização e organização da lógica.
-
+Funções utilitárias reutilizadas em diversas partes do projeto.
 </details>
 
 <details>
   <summary><strong>main.py</strong></summary>
 
-Ponto de entrada principal da aplicação no Cloud Run:
-
-- Realiza a chamada das funções de `service.py`
-- Trata erros e logs
-- Realiza leitura do token e do corpo da requisição enviada ao endpoint
-
+Ponto de entrada principal da aplicação no Cloud Run.
 </details>
 
 <details>
@@ -108,19 +93,65 @@ class TableNames:
     ASSETS_HISTORY = f"{Config.BIGQUERY_DATASET}.assets_history"
     LOG_EXECUTION = f"{Config.BIGQUERY_DATASET}.log_execution"
 ```
-
 </details>
 
 ---
 
 ## Funcionamento Geral no Cloud Run
 
-A aplicação foi construída para ser executada via **Google Cloud Run**, onde o endpoint exposto é responsável por:
+A aplicação é executada via **Google Cloud Run**, com um endpoint exposto que:
 
-1. Realizar chamadas às APIs de criptomoedas;
-2. Transformar os dados para o formato do BigQuery;
-3. Verificar execuções anteriores (quando necessário);
-4. Inserir os dados em lote no BigQuery de forma escalável (`chunking`);
-5. Registrar falhas ou erros no log.
+1. Realiza chamadas às APIs de criptomoedas;
+2. Transforma os dados para o formato do BigQuery;
+3. Verifica execuções anteriores (quando necessário);
+4. Insere os dados em lote no BigQuery de forma escalável (chunking);
+5. Registra falhas ou erros no log.
+
+---
+
+## Estrutura de Armazenamento no BigQuery
+
+A arquitetura de dados segue o conceito de **camadas**, com dois conjuntos de dados principais:
+
+### 🔹 `APIcripto` (Camada Bruta)
+
+Conjunto de dados que armazena informações brutas obtidas diretamente da API e também procedures intermediárias de transformação.
+
+#### Tabelas brutas
+
+- `cadastra-teste.APIcripto.assets`  
+- `cadastra-teste.APIcripto.rates`  
+- `cadastra-teste.APIcripto.assets_history`  
+
+> As queries de definição estão na pasta: `bigquery/tables`
+
+#### Procedures
+
+> Localizadas em: `bigquery/procedures`
+
+- `best_performers_last_24h`:  
+  Gera ranking das criptomoedas com **melhor e pior performance nas últimas 24 horas**, categorizadas em:
+  - `up`: crescimento
+  - `down`: queda
+
+- `crypto_analysis_by_hour`:  
+  Executa análise horária das criptos e evita reprocessamento de dados já existentes.
+
+- `latest_rates`:  
+  Atualiza as **últimas cotações** disponíveis das criptomoedas.
+
+---
+
+### `APIcripto_gold` (Camada Tratada)
+
+Conjunto com os **dados prontos para análise**, resultado das procedures da camada bruta.
+
+#### Tabelas tratadas
+
+- `cadastra-teste.APIcripto_gold.latest_rates`  
+- `cadastra-teste.APIcripto_gold.crypto_analysis_by_hour`  
+- `cadastra-teste.APIcripto_gold.best_performers_last_24h`  
+
+Essas tabelas servem como base para visualizações no **Looker** e demais análises de negócio.
 
 ---
